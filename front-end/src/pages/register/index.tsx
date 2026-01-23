@@ -1,8 +1,10 @@
 import { ErrorMessage } from "@hookform/error-message"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
+import { toast } from "sonner"
 import z from "zod"
 
 import logo from "/icon.png"
@@ -15,10 +17,11 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { api } from "@/lib/api"
 
 const submitFormRegisterSchema = z.object({
-  username: z.string().nonempty("Nome de usuário é obrigatório"),
-  email: z.email("Email é obrigatório"),
+  name: z.string().nonempty("Nome de usuário é obrigatório"),
+  email: z.string().email("Email inválido"),
   password: z.string().min(6, "A senha deve ter no mínimo 6 caracteres"),
 })
 
@@ -26,6 +29,7 @@ type SubmitForm = z.infer<typeof submitFormRegisterSchema>
 
 export function Register() {
   const {
+    reset,
     register,
     handleSubmit,
     formState: { errors },
@@ -33,8 +37,23 @@ export function Register() {
     resolver: zodResolver(submitFormRegisterSchema),
   })
 
+  const registerMutation = useMutation({
+    mutationFn: async (data: SubmitForm) => {
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+
+      return api.post("/register", data)
+    },
+    onSuccess: () => {
+      reset()
+      toast.success("Usuário criado com sucesso!")
+    },
+    onError: () => {
+      toast.error("Erro ao criar usuário")
+    },
+  })
+
   async function handleSubmitForm(data: SubmitForm) {
-    console.log(data)
+    registerMutation.mutate(data)
   }
 
   return (
@@ -65,12 +84,12 @@ export function Register() {
               type="text"
               className="border-zinc-700"
               placeholder="Ex: John Doe"
-              {...register("username")}
+              {...register("name")}
             />
 
             <ErrorMessage
               errors={errors}
-              name="username"
+              name="name"
               render={({ message }) => (
                 <p className="text-sm text-red-500">{message}</p>
               )}
@@ -114,9 +133,17 @@ export function Register() {
 
           <Button
             type="submit"
-            className="cursor-pointer bg-[#5c34fb] hover:bg-[#846ff0]"
+            disabled={registerMutation.isPending}
+            className="flex cursor-pointer items-center justify-center gap-2 bg-[#5c34fb] hover:bg-[#846ff0] disabled:opacity-70"
           >
-            Login
+            {registerMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Criando conta...
+              </>
+            ) : (
+              "Registrar"
+            )}
           </Button>
         </form>
       </CardContent>
