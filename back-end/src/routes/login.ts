@@ -9,6 +9,6 @@ import { authMiddleware } from "../middlewares/auth"
 export async function loginRoutes(app: FastifyInstance) {
   app.post("/login", loginController)
   app.post("/register", registerController)
-  app.get("/profile", { onRequest: authMiddleware }, profileController)
-  app.get("/admin", { onRequest: authMiddleware }, adminController)
+  app.get("/profile", { preHandler: authMiddleware }, profileController)
+  app.get("/admin", { preHandler: authMiddleware }, adminController)
 }
