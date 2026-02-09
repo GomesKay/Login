@@ -1,7 +1,12 @@
 import { ErrorMessage } from "@hookform/error-message"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
+import { useNavigate } from "@tanstack/react-router"
+import { Loader2 } from "lucide-react"
+import { useEffect } from "react"
 import { useForm } from "react-hook-form"
+import { toast } from "sonner"
 import { z } from "zod"
 
 import logo from "/icon.png"
@@ -14,6 +19,8 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { api } from "@/lib/api"
+import { isAuthenticated } from "@/lib/auth"
 
 const submitFormLoginSchema = z.object({
   email: z.email("Email é obrigatório"),
@@ -23,6 +30,7 @@ const submitFormLoginSchema = z.object({
 type SubmitForm = z.infer<typeof submitFormLoginSchema>
 
 export function Login() {
+  const navigate = useNavigate()
   const {
     register,
     handleSubmit,
@@ -31,9 +39,34 @@ export function Login() {
     resolver: zodResolver(submitFormLoginSchema),
   })
 
+  const loginMutation = useMutation({
+    mutationFn: async (data: SubmitForm) => {
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+
+      return api.post("/login", data)
+    },
+    onSuccess: (response) => {
+      const token = response.data.token
+
+      localStorage.setItem("token", token)
+
+      toast.success("Login efetuado com sucesso!")
+      navigate({ to: "/profile", replace: true })
+    },
+    onError: () => {
+      toast.error("Email ou senha inválidos")
+    },
+  })
+
   async function handleSubmitForm(data: SubmitForm) {
-    console.log(data)
+    loginMutation.mutate(data)
   }
+
+  useEffect(() => {
+    if (isAuthenticated()) {
+      navigate({ to: "/profile", replace: true })
+    }
+  }, [navigate])
 
   return (
     <Card className="gap-20 border-zinc-700 bg-zinc-900 p-6 text-white">
@@ -91,9 +124,17 @@ export function Login() {
 
           <Button
             type="submit"
+            disabled={loginMutation.isPending}
             className="cursor-pointer bg-[#5c34fb] hover:bg-[#846ff0]"
           >
-            Login
+            {loginMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Entrando...
+              </>
+            ) : (
+              "Login"
+            )}
           </Button>
         </form>
       </CardContent>

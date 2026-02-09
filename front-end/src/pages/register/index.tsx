@@ -1,8 +1,9 @@
 import { ErrorMessage } from "@hookform/error-message"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "@tanstack/react-query"
-import { Link } from "@tanstack/react-router"
+import { Link, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, Loader2 } from "lucide-react"
+import { useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import z from "zod"
@@ -18,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
+import { isAuthenticated } from "@/lib/auth"
 
 const submitFormRegisterSchema = z.object({
   name: z.string().nonempty("Nome de usuário é obrigatório"),
@@ -28,6 +30,7 @@ const submitFormRegisterSchema = z.object({
 type SubmitForm = z.infer<typeof submitFormRegisterSchema>
 
 export function Register() {
+  const navigate = useNavigate()
   const {
     reset,
     register,
@@ -55,6 +58,12 @@ export function Register() {
   async function handleSubmitForm(data: SubmitForm) {
     registerMutation.mutate(data)
   }
+
+  useEffect(() => {
+    if (isAuthenticated()) {
+      navigate({ to: "/profile", replace: true })
+    }
+  }, [navigate])
 
   return (
     <Card className="gap-20 border-zinc-700 bg-zinc-900 p-6 text-white">
